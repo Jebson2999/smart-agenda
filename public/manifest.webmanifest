@@ -1,0 +1,26 @@
+{
+  "name": "ASTRAL Smart Agenda",
+  "short_name": "ASTRAL Agenda",
+  "description": "Agenda operacional da Astral Saúde Ambiental: auditorias GMP+, visitas técnicas, reuniões, checklists e notificações pelo WhatsApp.",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "id": "/",
+  "start_url": "/?origem=app",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0B4336",
+  "theme_color": "#0B4336",
+  "categories": ["productivity", "business"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Agenda", "short_name": "Agenda", "url": "/agenda", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Novo compromisso", "short_name": "Novo", "url": "/eventos/novo", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Auditorias GMP+", "short_name": "Auditorias", "url": "/auditorias", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

@@ -1,0 +1,37 @@
+# Implantação em um servidor próprio (VPS) com HTTPS automático (Caddy + Let's Encrypt).
+# 1) Aponte o domínio (registro A) para o IP do servidor
+# 2) Copie .env.example para .env e preencha (APP_URL com https://seu-dominio)
+# 3) Ajuste o domínio no Caddyfile
+# 4) docker compose up -d --build
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_PATH: /data/astral.db
+      ATTACHMENTS_DIR: /data/anexos
+      BACKUP_DIR: /data/backups
+      TRUST_PROXY: "1"
+    volumes:
+      - astral-data:/data
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  astral-data:
+  caddy-data:
+  caddy-config:

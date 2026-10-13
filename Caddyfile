@@ -1,0 +1,5 @@
+# Troque pelo seu domínio. O Caddy emite e renova o certificado HTTPS sozinho.
+agenda.seudominio.com.br {
+	encode zstd gzip
+	reverse_proxy app:3000
+}
