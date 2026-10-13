@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { config } from './config.ts';
 import { openDatabase, closeDatabase } from './db.ts';
 import { seedAll } from './seed.ts';
+import { parseResetArgs, resetPassword } from './recovery.ts';
 import { backupNow } from './backup.ts';
 import { createApp } from './app.ts';
 import { startScheduler, stopScheduler } from './notifications/scheduler.ts';
@@ -28,6 +29,22 @@ async function main() {
     return;
   }
   await seedAll();
+  const reset = parseResetArgs(process.argv);
+  if (reset) {
+    const r = await resetPassword(reset);
+    console.log(`\nBanco de dados: ${path.resolve(config.databasePath)}`);
+    if (!r.ok) {
+      console.error(`✘ ${r.message}`);
+      if (r.users?.length) console.error(`Usuários cadastrados:\n${r.users.map((u) => `  - ${u.email} (${u.role}${u.active ? '' : ', inativo'})`).join('\n')}`);
+      closeDatabase();
+      process.exitCode = 1;
+      return;
+    }
+    console.log(`✔ Senha redefinida.\n  E-mail: ${r.email}\n  Senha:  ${r.password}`);
+    console.log(r.temporary ? '  (senha temporária: o sistema pede uma nova no primeiro acesso)\n' : '');
+    closeDatabase();
+    return;
+  }
   if (process.argv.includes('--seed-only')) {
     closeDatabase();
     return;

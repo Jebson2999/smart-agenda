@@ -29879,6 +29879,41 @@ async function seedAll() {
   }
 }
 
+// src/server/recovery.ts
+async function resetPassword(opts) {
+  const users = all("SELECT email, role, active FROM users ORDER BY role, email");
+  const email = opts.email?.trim().toLowerCase();
+  const user = email ? get("SELECT id, email FROM users WHERE email = ? COLLATE NOCASE", email) : get("SELECT id, email FROM users WHERE role = 'admin' ORDER BY active DESC, id LIMIT 1");
+  if (!user) return { ok: false, message: email ? `Nenhum usu\xE1rio com o e-mail ${email}.` : "Nenhum administrador cadastrado.", users };
+  const chosen = opts.password?.trim();
+  if (chosen) {
+    const problem = passwordProblems(chosen);
+    if (problem) return { ok: false, message: problem };
+  }
+  const password = chosen || generatePassword();
+  run(
+    "UPDATE users SET password_hash = ?, must_change_password = ?, active = 1, updated_at = ? WHERE id = ?",
+    await hashPassword(password),
+    chosen ? 0 : 1,
+    nowIso(),
+    user.id
+  );
+  run("DELETE FROM login_attempts WHERE key LIKE ? ESCAPE '\\'", `${user.email.toLowerCase().replace(/[\\%_]/g, (c) => `\\${c}`)}|%`);
+  revokeUserSessions(user.id);
+  audit(null, "senha_redefinida_terminal", "user", user.id, { temporaria: !chosen });
+  return { ok: true, message: "Senha redefinida.", email: user.email, password, temporary: !chosen };
+}
+function parseResetArgs(argv) {
+  const i = argv.findIndex((a) => a === "--redefinir-senha" || a === "--reset-password");
+  if (i < 0) return null;
+  const rest = [];
+  for (const a of argv.slice(i + 1)) {
+    if (a.startsWith("--")) break;
+    rest.push(a);
+  }
+  return { email: rest.find((a) => a.includes("@")), password: rest.find((a) => !a.includes("@")) };
+}
+
 // src/server/backup.ts
 import fs4 from "node:fs";
 import path4 from "node:path";
@@ -36700,6 +36735,26 @@ async function main() {
     return;
   }
   await seedAll();
+  const reset = parseResetArgs(process.argv);
+  if (reset) {
+    const r = await resetPassword(reset);
+    console.log(`
+Banco de dados: ${path8.resolve(config.databasePath)}`);
+    if (!r.ok) {
+      console.error(`\u2718 ${r.message}`);
+      if (r.users?.length) console.error(`Usu\xE1rios cadastrados:
+${r.users.map((u) => `  - ${u.email} (${u.role}${u.active ? "" : ", inativo"})`).join("\n")}`);
+      closeDatabase();
+      process.exitCode = 1;
+      return;
+    }
+    console.log(`\u2714 Senha redefinida.
+  E-mail: ${r.email}
+  Senha:  ${r.password}`);
+    console.log(r.temporary ? "  (senha tempor\xE1ria: o sistema pede uma nova no primeiro acesso)\n" : "");
+    closeDatabase();
+    return;
+  }
   if (process.argv.includes("--seed-only")) {
     closeDatabase();
     return;

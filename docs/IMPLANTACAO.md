@@ -104,6 +104,20 @@ Para recompilar a partir do código-fonte (só se alterar o sistema): `npm insta
 5. Em *Configurações → Meu perfil*, cada pessoa informa o WhatsApp e dá o consentimento. O administrador pode cadastrar outros números em *WhatsApp → Destinatários*.
 6. Conecte o WhatsApp seguindo [WHATSAPP.md](WHATSAPP.md). Até lá, tudo funciona em modo demonstração.
 
+### Não consegue entrar? Redefina a senha pelo terminal
+
+Na pasta do sistema (a mesma onde fica a pasta `data`), rode:
+
+```bash
+node --disable-warning=ExperimentalWarning dist/server.mjs --redefinir-senha supervisao.snp@grupoastral.com.br SuaSenhaNova2026
+```
+
+- A senha precisa ter pelo menos 10 caracteres, com letras e números. Com a senha informada, o acesso é imediato.
+- Sem a senha, o sistema gera uma temporária e pede a troca no primeiro acesso. Sem o e-mail, redefine o administrador e mostra qual é o e-mail dele.
+- O comando também libera o bloqueio por tentativas erradas e encerra as sessões antigas. Pode rodar com o sistema ligado ou desligado; compromissos e demais dados continuam como estão.
+- Se o e-mail não existir, o comando lista os usuários cadastrados.
+- Atalho: `npm run senha -- <e-mail> <senha>`.
+
 ## Variáveis de ambiente
 
 | Variável | Padrão | Para que serve |

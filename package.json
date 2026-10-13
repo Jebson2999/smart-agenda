@@ -17,6 +17,7 @@
     "screenshots": "node scripts/screenshots.mjs",
     "icons": "node scripts/generate-icons.mjs",
     "backup": "node --disable-warning=ExperimentalWarning dist/server.mjs --backup",
+    "senha": "node --disable-warning=ExperimentalWarning dist/server.mjs --redefinir-senha",
     "db:reset-demo": "node --disable-warning=ExperimentalWarning dist/server.mjs --reset-demo"
   },
   "devDependencies": {
