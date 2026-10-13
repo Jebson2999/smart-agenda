@@ -32,7 +32,7 @@ node --disable-warning=ExperimentalWarning dist/server.mjs
 # abra http://localhost:3000
 ```
 
-Na primeira inicialização são criadas as contas do Supervisor Técnico e do Coordenador (senhas de `SUPERVISOR_INITIAL_PASSWORD` / `COORDINATOR_INITIAL_PASSWORD`, ou geradas em `data/credenciais-iniciais.txt`). A troca de senha é obrigatória no primeiro acesso.
+Na primeira inicialização são criadas as contas do Supervisor Técnico (login `supervisao.snp@grupoastral.com.br`) e do Coordenador (senhas de `SUPERVISOR_INITIAL_PASSWORD` / `COORDINATOR_INITIAL_PASSWORD`, ou geradas em `data/credenciais-iniciais.txt`). A troca de senha é obrigatória no primeiro acesso.
 
 Para colocar no ar com HTTPS: veja **[docs/IMPLANTACAO.md](docs/IMPLANTACAO.md)** (Docker + Caddy em uma VPS é o caminho recomendado).
 

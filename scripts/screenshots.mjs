@@ -6,7 +6,7 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 
 const base = (process.env.BASE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
-const email = process.env.LOGIN_EMAIL ?? 'supervisor@astral.local';
+const email = process.env.LOGIN_EMAIL ?? 'supervisao.snp@grupoastral.com.br';
 const password = process.env.LOGIN_PASSWORD ?? '';
 const out = path.resolve(process.env.OUT_DIR ?? 'screenshots');
 const theme = process.env.THEME ?? 'light';

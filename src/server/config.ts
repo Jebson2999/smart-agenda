@@ -39,7 +39,7 @@ export const config = {
   disableBackup: env('DISABLE_BACKUP') === '1',
   seed: {
     supervisorName: env('SUPERVISOR_NAME', 'Supervisor Técnico'),
-    supervisorEmail: env('SUPERVISOR_EMAIL', 'supervisor@astral.local'),
+    supervisorEmail: env('SUPERVISOR_EMAIL', 'supervisao.snp@grupoastral.com.br'),
     supervisorPassword: env('SUPERVISOR_INITIAL_PASSWORD'),
     coordinatorName: env('COORDINATOR_NAME', 'Coordenador de Operações'),
     coordinatorEmail: env('COORDINATOR_EMAIL', 'coordenador@astral.local'),

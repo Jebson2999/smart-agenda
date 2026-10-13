@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { get, nowIso, run, tx } from './db.ts';
 import { config } from './config.ts';
-import { generatePassword, hashPassword } from './auth.ts';
+import { audit, generatePassword, hashPassword } from './auth.ts';
 import { createEvent } from './repo/events.ts';
 import { DEFAULT_TEMPLATES } from './notifications/messages.ts';
 import crypto from 'node:crypto';
@@ -113,6 +113,23 @@ function upsertTemplates() {
   }
 }
 
+/** E-mail padrão do administrador nas primeiras versões. */
+export const LEGACY_SUPERVISOR_EMAIL = 'supervisor@astral.local';
+
+/**
+ * Instalações criadas antes da troca do e-mail padrão: se o administrador ainda usa o e-mail antigo
+ * de fábrica e ninguém usa o novo, passa a conta para o e-mail configurado (dados e senha mantidos).
+ */
+export function migrateLegacySupervisorEmail(target: string) {
+  const to = target.trim().toLowerCase();
+  if (!to || to === LEGACY_SUPERVISOR_EMAIL) return false;
+  const legacy = get<{ id: number }>("SELECT id FROM users WHERE role = 'admin' AND email = ? COLLATE NOCASE", LEGACY_SUPERVISOR_EMAIL);
+  if (!legacy || get('SELECT id FROM users WHERE email = ? COLLATE NOCASE', to)) return false;
+  run('UPDATE users SET email = ?, updated_at = ? WHERE id = ?', to, nowIso(), legacy.id);
+  audit(null, 'usuario.email_atualizado', 'user', legacy.id, { de: LEGACY_SUPERVISOR_EMAIL, para: to, motivo: 'novo e-mail padrão do administrador' });
+  return true;
+}
+
 async function ensureUsers(): Promise<{ created: Array<{ name: string; email: string; password: string; role: string; generated: boolean }> }> {
   const created: Array<{ name: string; email: string; password: string; role: string; generated: boolean }> = [];
   const now = nowIso();
@@ -121,8 +138,11 @@ async function ensureUsers(): Promise<{ created: Array<{ name: string; email: st
     { name: s.supervisorName, email: s.supervisorEmail, password: s.supervisorPassword, role: 'admin' },
     { name: s.coordinatorName, email: s.coordinatorEmail, password: s.coordinatorPassword, role: 'coordenador' },
   ];
+  migrateLegacySupervisorEmail(s.supervisorEmail);
   for (const a of accounts) {
     if (get('SELECT id FROM users WHERE email = ? COLLATE NOCASE', a.email)) continue;
+    // Já existe uma conta desse perfil (ex.: o e-mail padrão mudou depois): não cria outra.
+    if (get('SELECT id FROM users WHERE role = ? LIMIT 1', a.role)) continue;
     const password = a.password || generatePassword();
     run(
       'INSERT INTO users (name, email, password_hash, role, extra_permissions, timezone, active, must_change_password, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?, ?)',

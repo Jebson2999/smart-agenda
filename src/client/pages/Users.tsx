@@ -215,6 +215,7 @@ function CreateUser({ data, onClose, onCreated }: { data: UsersResp; onClose: ()
 function EditUser({ u, data, selfId, onClose, onDone }: { u: UserRow; data: UsersResp; selfId: number; onClose: () => void; onDone: () => void }) {
   const { toast } = useFeedback();
   const [name, setName] = useState(u.name);
+  const [email, setEmail] = useState(u.email);
   const [role, setRole] = useState<RoleKey>(u.role);
   const [extra, setExtra] = useState<Permission[]>(u.extraPermissions);
   const [active, setActive] = useState(u.active);
@@ -223,7 +224,7 @@ function EditUser({ u, data, selfId, onClose, onDone }: { u: UserRow; data: User
   const save = async () => {
     setBusy(true);
     try {
-      await api.patch(`/api/users/${u.id}`, { name: name.trim(), role, extra_permissions: extra, active });
+      await api.patch(`/api/users/${u.id}`, { name: name.trim(), email: email.trim(), role, extra_permissions: extra, active });
       toast('ok', 'Usuário atualizado');
       onDone();
     } catch (e) {
@@ -244,7 +245,7 @@ function EditUser({ u, data, selfId, onClose, onDone }: { u: UserRow; data: User
           <Button variant="secondary" onClick={onClose}>
             Voltar
           </Button>
-          <Button onClick={() => void save()} loading={busy} disabled={name.trim().length < 2}>
+          <Button onClick={() => void save()} loading={busy} disabled={name.trim().length < 2 || !email.includes('@')}>
             Salvar
           </Button>
         </>
@@ -254,6 +255,9 @@ function EditUser({ u, data, selfId, onClose, onDone }: { u: UserRow; data: User
         <div className="space-y-3">
           <Field label="Nome">
             <Input value={name} onChange={(e) => setName(e.target.value)} />
+          </Field>
+          <Field label="E-mail (login)" hint="Passa a valer no próximo acesso.">
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </Field>
           <Field label="Perfil" hint={self ? 'Você não pode rebaixar o seu próprio acesso.' : data.roles[role].description}>
             <Select value={role} disabled={self} onChange={(e) => setRole(e.target.value as RoleKey)}>

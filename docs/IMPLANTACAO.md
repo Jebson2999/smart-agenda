@@ -98,10 +98,11 @@ Para recompilar a partir do código-fonte (só se alterar o sistema): `npm insta
 ## Primeiro acesso
 
 1. Na primeira inicialização o sistema cria as contas do **Supervisor Técnico** (administrador) e do **Coordenador de Operações**, os modelos de checklist, os templates do WhatsApp e os **10 compromissos reais de 2026**.
-2. As senhas iniciais vêm de `SUPERVISOR_INITIAL_PASSWORD` e `COORDINATOR_INITIAL_PASSWORD`. Se ficarem em branco, o sistema gera senhas fortes e grava em `data/credenciais-iniciais.txt` — **apague o arquivo depois de usar**.
-3. A troca de senha é obrigatória no primeiro login.
-4. Em *Configurações → Meu perfil*, cada pessoa informa o WhatsApp e dá o consentimento. O administrador pode cadastrar outros números em *WhatsApp → Destinatários*.
-5. Conecte o WhatsApp seguindo [WHATSAPP.md](WHATSAPP.md). Até lá, tudo funciona em modo demonstração.
+2. O login do administrador é `supervisao.snp@grupoastral.com.br` (mude com `SUPERVISOR_EMAIL`); o do coordenador vem de `COORDINATOR_EMAIL`. Depois, o administrador pode trocar o e-mail de qualquer pessoa em *Usuários → Editar*.
+3. As senhas iniciais vêm de `SUPERVISOR_INITIAL_PASSWORD` e `COORDINATOR_INITIAL_PASSWORD`. Se ficarem em branco, o sistema gera senhas fortes e grava em `data/credenciais-iniciais.txt` — **apague o arquivo depois de usar**.
+4. A troca de senha é obrigatória no primeiro login.
+5. Em *Configurações → Meu perfil*, cada pessoa informa o WhatsApp e dá o consentimento. O administrador pode cadastrar outros números em *WhatsApp → Destinatários*.
+6. Conecte o WhatsApp seguindo [WHATSAPP.md](WHATSAPP.md). Até lá, tudo funciona em modo demonstração.
 
 ## Variáveis de ambiente
 

@@ -85,6 +85,25 @@ test('a carga inicial é idempotente (reiniciar o servidor não duplica nada)', 
   assert.equal(get<{ c: number }>('SELECT COUNT(*) AS c FROM users')!.c, 2);
 });
 
+test('instalação antiga: o administrador com o e-mail de fábrica passa para o novo e-mail, sem criar outra conta', async () => {
+  const { run } = await import('../src/server/db.ts');
+  const { LEGACY_SUPERVISOR_EMAIL } = await import('../src/server/seed.ts');
+  const { config } = await import('../src/server/config.ts');
+  const admin = get<{ id: number; password_hash: string }>("SELECT id, password_hash FROM users WHERE role = 'admin'")!;
+  run('UPDATE users SET email = ? WHERE id = ?', LEGACY_SUPERVISOR_EMAIL, admin.id);
+  await seedAll();
+  const after = get<{ email: string; password_hash: string }>('SELECT email, password_hash FROM users WHERE id = ?', admin.id)!;
+  assert.equal(after.email, config.seed.supervisorEmail.toLowerCase());
+  assert.equal(after.password_hash, admin.password_hash, 'a senha continua a mesma');
+  assert.equal(get<{ c: number }>("SELECT COUNT(*) AS c FROM users WHERE role = 'admin'")!.c, 1);
+  // Administrador com e-mail próprio (não o de fábrica) não é alterado nem duplicado.
+  run('UPDATE users SET email = ? WHERE id = ?', 'outro@empresa.com.br', admin.id);
+  await seedAll();
+  assert.equal(get<{ email: string }>('SELECT email FROM users WHERE id = ?', admin.id)!.email, 'outro@empresa.com.br');
+  assert.equal(get<{ c: number }>("SELECT COUNT(*) AS c FROM users WHERE role = 'admin'")!.c, 1);
+  run('UPDATE users SET email = ? WHERE id = ?', config.seed.supervisorEmail, admin.id);
+});
+
 test('backup: gera uma cópia consistente do banco com VACUUM INTO', async () => {
   const fs = await import('node:fs');
   const os = await import('node:os');

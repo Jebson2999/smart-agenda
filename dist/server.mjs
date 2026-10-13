@@ -27580,7 +27580,7 @@ var config = {
   disableBackup: env("DISABLE_BACKUP") === "1",
   seed: {
     supervisorName: env("SUPERVISOR_NAME", "Supervisor T\xE9cnico"),
-    supervisorEmail: env("SUPERVISOR_EMAIL", "supervisor@astral.local"),
+    supervisorEmail: env("SUPERVISOR_EMAIL", "supervisao.snp@grupoastral.com.br"),
     supervisorPassword: env("SUPERVISOR_INITIAL_PASSWORD"),
     coordinatorName: env("COORDINATOR_NAME", "Coordenador de Opera\xE7\xF5es"),
     coordinatorEmail: env("COORDINATOR_EMAIL", "coordenador@astral.local"),
@@ -29678,6 +29678,16 @@ function upsertTemplates() {
     );
   }
 }
+var LEGACY_SUPERVISOR_EMAIL = "supervisor@astral.local";
+function migrateLegacySupervisorEmail(target) {
+  const to = target.trim().toLowerCase();
+  if (!to || to === LEGACY_SUPERVISOR_EMAIL) return false;
+  const legacy = get("SELECT id FROM users WHERE role = 'admin' AND email = ? COLLATE NOCASE", LEGACY_SUPERVISOR_EMAIL);
+  if (!legacy || get("SELECT id FROM users WHERE email = ? COLLATE NOCASE", to)) return false;
+  run("UPDATE users SET email = ?, updated_at = ? WHERE id = ?", to, nowIso(), legacy.id);
+  audit(null, "usuario.email_atualizado", "user", legacy.id, { de: LEGACY_SUPERVISOR_EMAIL, para: to, motivo: "novo e-mail padr\xE3o do administrador" });
+  return true;
+}
 async function ensureUsers() {
   const created = [];
   const now = nowIso();
@@ -29686,8 +29696,10 @@ async function ensureUsers() {
     { name: s.supervisorName, email: s.supervisorEmail, password: s.supervisorPassword, role: "admin" },
     { name: s.coordinatorName, email: s.coordinatorEmail, password: s.coordinatorPassword, role: "coordenador" }
   ];
+  migrateLegacySupervisorEmail(s.supervisorEmail);
   for (const a of accounts) {
     if (get("SELECT id FROM users WHERE email = ? COLLATE NOCASE", a.email)) continue;
+    if (get("SELECT id FROM users WHERE role = ? LIMIT 1", a.role)) continue;
     const password = a.password || generatePassword();
     run(
       "INSERT INTO users (name, email, password_hash, role, extra_permissions, timezone, active, must_change_password, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?, ?)",
@@ -35054,11 +35066,13 @@ function registerAdminRoutes(r) {
   r.patch("/api/users/:id", (ctx) => {
     const id = intParam(ctx.params.id);
     const body = validate(
-      external_exports.object({ name: external_exports.string().trim().min(2).max(80).optional(), role: roleEnum.optional(), extra_permissions: external_exports.array(external_exports.string()).optional(), active: external_exports.boolean().optional() }),
+      external_exports.object({ name: external_exports.string().trim().min(2).max(80).optional(), email: external_exports.string().trim().email("E-mail inv\xE1lido").max(160).optional(), role: roleEnum.optional(), extra_permissions: external_exports.array(external_exports.string()).optional(), active: external_exports.boolean().optional() }),
       ctx.body
     );
-    const cur = get("SELECT role, name, extra_permissions, active FROM users WHERE id = ?", id);
+    const cur = get("SELECT role, name, email, extra_permissions, active FROM users WHERE id = ?", id);
     if (!cur) throw new HttpError(404, "Usu\xE1rio n\xE3o encontrado");
+    const email = body.email?.toLowerCase();
+    if (email && email !== cur.email.toLowerCase() && get("SELECT 1 FROM users WHERE email = ? COLLATE NOCASE AND id <> ?", email, id)) throw new HttpError(409, "J\xE1 existe um usu\xE1rio com este e-mail.");
     if (id === ctx.user.id && (body.role && body.role !== "admin" || body.active === false)) throw new HttpError(422, "Voc\xEA n\xE3o pode remover o seu pr\xF3prio acesso de administrador.");
     if (cur.role === "admin" && (body.role && body.role !== "admin" || body.active === false)) {
       const admins = get("SELECT COUNT(*) AS c FROM users WHERE role = 'admin' AND active = 1").c;
@@ -35066,8 +35080,9 @@ function registerAdminRoutes(r) {
     }
     const extra = body.extra_permissions ? body.extra_permissions.filter((p) => CONFIGURABLE_PERMISSIONS.includes(p)) : parseJson(cur.extra_permissions, []);
     run(
-      "UPDATE users SET name = ?, role = ?, extra_permissions = ?, active = ?, updated_at = ? WHERE id = ?",
+      "UPDATE users SET name = ?, email = ?, role = ?, extra_permissions = ?, active = ?, updated_at = ? WHERE id = ?",
       body.name ?? cur.name,
+      email ?? cur.email,
       body.role ?? cur.role,
       JSON.stringify(extra),
       body.active === void 0 ? cur.active : body.active,
@@ -35075,7 +35090,7 @@ function registerAdminRoutes(r) {
       id
     );
     if (body.active === false) revokeUserSessions(id);
-    audit(ctx.user.id, "usuario_alterado", "user", id, { de: { role: cur.role, extra: parseJson(cur.extra_permissions, []) }, para: { role: body.role ?? cur.role, extra, active: body.active } }, ctx.ip);
+    audit(ctx.user.id, "usuario_alterado", "user", id, { de: { email: cur.email, role: cur.role, extra: parseJson(cur.extra_permissions, []) }, para: { email: email ?? cur.email, role: body.role ?? cur.role, extra, active: body.active } }, ctx.ip);
     return { users: listUsers() };
   }, { perm: "users.manage" });
   r.post("/api/users/:id/reset-password", async (ctx) => {

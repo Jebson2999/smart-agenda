@@ -202,6 +202,24 @@ test('usuário desativado perde a sessão imediatamente', async () => {
   assert.equal((await tec.get('/api/auth/me')).status, 401);
 });
 
+test('o administrador troca o e-mail de login de um usuário; e-mail repetido é recusado', async () => {
+  const created = await sup.post('/api/users', { name: 'Técnico de Campo', email: 'campo@teste.local', role: 'tecnico' });
+  assert.equal(created.status, 200);
+  const dup = await sup.patch(`/api/users/${created.data.id}`, { email: SUPERVISOR.email.toUpperCase() });
+  assert.equal(dup.status, 409);
+  assert.equal((await sup.patch(`/api/users/${created.data.id}`, { email: 'invalido' })).status, 422);
+  const ok = await sup.patch(`/api/users/${created.data.id}`, { email: ' Campo.Novo@Teste.Local ' });
+  assert.equal(ok.status, 200);
+  const u = (await sup.get('/api/users')).data.users.find((x: { id: number }) => x.id === created.data.id);
+  assert.equal(u.email, 'campo.novo@teste.local');
+  const tec = new Client(srv.base);
+  const old = await tec.post('/api/auth/login', { email: 'campo@teste.local', password: created.data.temporaryPassword });
+  assert.equal(old.status, 401);
+  await tec.login({ email: 'campo.novo@teste.local', password: created.data.temporaryPassword });
+  run('DELETE FROM login_attempts');
+  await sup.patch(`/api/users/${created.data.id}`, { active: false });
+});
+
 test('o sistema nunca fica sem administrador ativo', async () => {
   const me = (await sup.get('/api/auth/me')).data.user;
   const r = await sup.patch(`/api/users/${me.id}`, { role: 'coordenador' });

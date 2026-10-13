@@ -52,11 +52,13 @@ export function registerAdminRoutes(r: Router) {
   r.patch('/api/users/:id', (ctx) => {
     const id = intParam(ctx.params.id);
     const body = validate(
-      z.object({ name: z.string().trim().min(2).max(80).optional(), role: roleEnum.optional(), extra_permissions: z.array(z.string()).optional(), active: z.boolean().optional() }),
+      z.object({ name: z.string().trim().min(2).max(80).optional(), email: z.string().trim().email('E-mail inválido').max(160).optional(), role: roleEnum.optional(), extra_permissions: z.array(z.string()).optional(), active: z.boolean().optional() }),
       ctx.body,
     );
-    const cur = get<{ role: RoleKey; name: string; extra_permissions: string; active: number }>('SELECT role, name, extra_permissions, active FROM users WHERE id = ?', id);
+    const cur = get<{ role: RoleKey; name: string; email: string; extra_permissions: string; active: number }>('SELECT role, name, email, extra_permissions, active FROM users WHERE id = ?', id);
     if (!cur) throw new HttpError(404, 'Usuário não encontrado');
+    const email = body.email?.toLowerCase();
+    if (email && email !== cur.email.toLowerCase() && get('SELECT 1 FROM users WHERE email = ? COLLATE NOCASE AND id <> ?', email, id)) throw new HttpError(409, 'Já existe um usuário com este e-mail.');
     // Proteção: o sistema nunca fica sem administrador ativo, e ninguém rebaixa a si mesmo.
     if (id === ctx.user!.id && ((body.role && body.role !== 'admin') || body.active === false)) throw new HttpError(422, 'Você não pode remover o seu próprio acesso de administrador.');
     if (cur.role === 'admin' && ((body.role && body.role !== 'admin') || body.active === false)) {
@@ -65,8 +67,9 @@ export function registerAdminRoutes(r: Router) {
     }
     const extra = body.extra_permissions ? body.extra_permissions.filter((p) => (CONFIGURABLE_PERMISSIONS as string[]).includes(p)) : parseJson<string[]>(cur.extra_permissions, []);
     run(
-      'UPDATE users SET name = ?, role = ?, extra_permissions = ?, active = ?, updated_at = ? WHERE id = ?',
+      'UPDATE users SET name = ?, email = ?, role = ?, extra_permissions = ?, active = ?, updated_at = ? WHERE id = ?',
       body.name ?? cur.name,
+      email ?? cur.email,
       body.role ?? cur.role,
       JSON.stringify(extra),
       body.active === undefined ? cur.active : body.active,
@@ -74,7 +77,7 @@ export function registerAdminRoutes(r: Router) {
       id,
     );
     if (body.active === false) revokeUserSessions(id);
-    audit(ctx.user!.id, 'usuario_alterado', 'user', id, { de: { role: cur.role, extra: parseJson(cur.extra_permissions, []) }, para: { role: body.role ?? cur.role, extra, active: body.active } }, ctx.ip);
+    audit(ctx.user!.id, 'usuario_alterado', 'user', id, { de: { email: cur.email, role: cur.role, extra: parseJson(cur.extra_permissions, []) }, para: { email: email ?? cur.email, role: body.role ?? cur.role, extra, active: body.active } }, ctx.ip);
     return { users: listUsers() };
   }, { perm: 'users.manage' });
 

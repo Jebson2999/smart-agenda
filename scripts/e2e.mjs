@@ -23,7 +23,7 @@ const env = {
   DATABASE_PATH: path.join(tmp, 'astral.db'),
   ATTACHMENTS_DIR: path.join(tmp, 'anexos'),
   SUPERVISOR_NAME: 'Supervisor Técnico',
-  SUPERVISOR_EMAIL: 'supervisor@astral.local',
+  SUPERVISOR_EMAIL: 'supervisao.snp@grupoastral.com.br',
   SUPERVISOR_INITIAL_PASSWORD: 'Temporaria-2026a',
   COORDINATOR_NAME: 'Coordenador de Operações',
   COORDINATOR_EMAIL: 'coordenador@astral.local',
@@ -84,7 +84,7 @@ try {
   page.on('pageerror', (e) => errors.push(e.message));
 
   // 1. Primeiro acesso
-  await firstLogin(page, 'supervisor@astral.local', 'Temporaria-2026a', 'Supervisor-Seguro-2026');
+  await firstLogin(page, 'supervisao.snp@grupoastral.com.br', 'Temporaria-2026a', 'Supervisor-Seguro-2026');
   await page.waitForSelector('[aria-label="Minha próxima missão"]');
   check(await page.isVisible('text=Minha próxima missão'), 'primeiro acesso com troca obrigatória de senha e painel com "Minha próxima missão"');
   check(await page.isVisible('text=Possível conflito de agenda'), 'painel alerta o possível conflito de 21/10');
